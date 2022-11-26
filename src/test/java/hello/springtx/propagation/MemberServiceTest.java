@@ -5,6 +5,7 @@ import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.transaction.UnexpectedRollbackException;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -107,6 +108,25 @@ class MemberServiceTest {
                 .isInstanceOf(RuntimeException.class);
 
         //then: member 데이터는 commit 요청되고 log 데이터는 롤백 요청된다. => 전체 롤백됨.
+        assertTrue(memberRepository.find(username).isEmpty());
+        assertTrue(logRepository.find(username).isEmpty());
+    }
+
+    /**
+     * memberService    @Transactional:ON
+     * memberRepository @Transactional:ON
+     * logRepository    @Transactional:ON Exception
+     */
+    @Test
+    void recoverException_fail() {
+        //given
+        String username = "로그예외_recoverException_fail";
+
+        //when
+        Assertions.assertThatThrownBy(() -> memberService.joinV2(username))
+                .isInstanceOf(UnexpectedRollbackException.class);
+
+        //then: member 데이터는 commit 요청되고 log 데이터는 롤백 요청된다. => log에서 발생한 Exception을 Catch 함. => commit 호출 => rollback as makred roll-back only
         assertTrue(memberRepository.find(username).isEmpty());
         assertTrue(logRepository.find(username).isEmpty());
     }
